@@ -1,0 +1,16 @@
+[package]
+name = "akst_os"
+version = "0.1.0"
+edition = "2021"
+authors = ["akstOS College Team"]
+description = "akstOS: Легковесный образовательный дистрибутив для колледжа с Userland на Rust"
+
+[dependencies]
+libc = "0.2"
+
+[profile.release]
+opt-level = "z"       # Оптимизация по размеру бинарника
+lto = true            # Link-Time Optimization
+panic = "abort"       # Удаление оверхенда паники
+strip = true          # Удаление всех отладочных символов
+codegen-units = 1     # Максимальная оптимизация при сборке
