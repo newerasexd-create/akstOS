@@ -1,0 +1,9 @@
+NAME="akstOS"
+PRETTY_NAME="akstOS College Edition 1.0"
+ID=akstos
+ID_LIKE=linux
+VERSION="1.0"
+VERSION_ID="1.0"
+HOME_URL="https://github.com/akstOS/akstOS"
+SUPPORT_URL="https://github.com/akstOS/akstOS/issues"
+BUG_REPORT_URL="https://github.com/akstOS/akstOS/issues"
