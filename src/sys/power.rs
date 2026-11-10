@@ -1,7 +1,7 @@
-/// Управление питанием системы akstOS
+/// Управление питанием системы akstOS для старых компьютеров
 
 pub fn sync_filesystems() {
-    println!("[akstOS] Синхронизация данных на диск...");
+    println!("[akstOS] Сохранение данных на диск...");
     unsafe {
         libc::sync();
     }
@@ -9,7 +9,7 @@ pub fn sync_filesystems() {
 
 pub fn reboot() -> ! {
     sync_filesystems();
-    println!("\x1b[1;33m[akstOS] Перезагрузка образовательной системы...\x1b[0m");
+    println!("\x1b[1;33m[akstOS] Перезагрузка компьютера...\x1b[0m");
     unsafe {
         libc::reboot(libc::RB_AUTOBOOT);
     }
@@ -18,7 +18,7 @@ pub fn reboot() -> ! {
 
 pub fn poweroff() -> ! {
     sync_filesystems();
-    println!("\x1b[1;31m[akstOS] Завершение работы. До встречи на парах!\x1b[0m");
+    println!("\x1b[1;32m[akstOS] Работа завершена. Теперь компьютер можно безопасно выключить.\x1b[0m");
     unsafe {
         libc::reboot(libc::RB_POWER_OFF);
     }
