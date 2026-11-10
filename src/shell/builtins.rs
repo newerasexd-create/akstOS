@@ -1,12 +1,16 @@
 use std::fs;
 use std::path::Path;
-use crate::college::{lab, monitor};
+use crate::college::{installer, lab, monitor};
 use crate::sys::power;
 
 pub fn execute_builtin(cmd: &str, args: &[&str]) -> bool {
     match cmd {
         "справка" | "помощь" | "help" | "?" => {
             println!("\x1b[1;36m=== Список команд akstOS (на русском языке) ===\x1b[0m");
+            println!("  \x1b[1;33mУстановка и диски:\x1b[0m");
+            println!("    установить (install)- запуск мастера установки на жесткий диск");
+            println!("    диски               - список найденных дисков ПК");
+            println!();
             println!("  \x1b[1;33mОбучение и колледж:\x1b[0m");
             println!("    лаб список          - показать все лабораторные работы");
             println!("    лаб инфо <номер>    - открыть задание работы");
@@ -26,6 +30,22 @@ pub fn execute_builtin(cmd: &str, args: &[&str]) -> bool {
             println!("    очистить            - очистить экран (или 'clear')");
             println!("    перезагрузка        - перезагрузить компьютер (или 'reboot')");
             println!("    выключить           - выключить компьютер (или 'poweroff')");
+            true
+        }
+        "установить" | "install" => {
+            installer::run_installer();
+            true
+        }
+        "диски" | "disks" => {
+            let disks = installer::scan_disks();
+            if disks.is_empty() {
+                println!("Физические диски не обнаружены.");
+            } else {
+                println!("Список обнаруженных дисков:");
+                for (i, d) in disks.iter().enumerate() {
+                    println!(" [{}] {} [ {:.1} ГБ ] - {}", i + 1, d.path, d.size_gb, d.model);
+                }
+            }
             true
         }
         "лаб" | "lab" => {
@@ -60,7 +80,6 @@ pub fn execute_builtin(cmd: &str, args: &[&str]) -> bool {
             println!("\x1b[1;33m[Тест] Измерение производительности процессора...\x1b[0m");
             let start = std::time::Instant::now();
             let mut sum: u32 = 0;
-            // Уменьшенное количество итераций, чтобы древний Celeron не зависал
             for i in 0..2_000_000u32 {
                 sum = sum.wrapping_add(i.wrapping_mul(7));
             }
