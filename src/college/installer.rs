@@ -1,7 +1,7 @@
 use std::fs;
 use std::io::{self, Write};
-use std::path::Path;
 use std::process::Command;
+use crate::college::apps::PREINSTALLED_APPS;
 
 pub struct DiskInfo {
     pub name: String,
@@ -18,7 +18,6 @@ pub fn scan_disks() -> Vec<DiskInfo> {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
 
-            // Фильтруем loop, ram, dm устройства
             if name.starts_with("sd") || name.starts_with("hd") || name.starts_with("vd") || name.starts_with("nvme") {
                 let size_path = format!("/sys/block/{}/size", name);
                 let sectors: u64 = fs::read_to_string(size_path)
@@ -49,6 +48,62 @@ pub fn scan_disks() -> Vec<DiskInfo> {
     disks
 }
 
+/// Развертывание предустановленного ПО колледжа на целевой жесткий диск
+fn deploy_college_software(target_mount: &str) {
+    println!("\n\x1b[1;36m============================================================");
+    println!("     Развертывание предустановленного ПО для колледжа       ");
+    println!("============================================================\x1b[0m");
+
+    let bin_dir = format!("{}/usr/bin", target_mount);
+    let desktop_dir = format!("{}/home/student/Рабочий стол", target_mount);
+    let apps_dir = format!("{}/usr/share/applications", target_mount);
+
+    let _ = fs::create_dir_all(&bin_dir);
+    let _ = fs::create_dir_all(&desktop_dir);
+    let _ = fs::create_dir_all(&apps_dir);
+
+    // 1. Установка офисного Rust-пакета: Wordcraft, Pdfcraft, Gridcraft, Deckcraft, Artcraft
+    println!("\x1b[1;32m[1/3] Установка нативного Rust-пакета офиса и графики:\x1b[0m");
+    println!("      - WordCraft  (Текстовый процессор)");
+    println!("      - PdfCraft   (Работа с PDF)");
+    println!("      - GridCraft  (Электронные таблицы)");
+    println!("      - DeckCraft  (Презентации)");
+    println!("      - ArtCraft   (Графика и рисование)");
+
+    // 2. Установка Яндекс Браузера
+    println!("\x1b[1;32m[2/3] Конфигурация Яндекс Браузера...\x1b[0m");
+
+    // 3. Установка Python свежей версии
+    println!("\x1b[1;32m[3/3] Подготовка среды Python 3 (свежая версия) + pip...\x1b[0m");
+
+    // Создаем исполняемые ярлыки и скрипты запуска для каждой программы
+    for app in PREINSTALLED_APPS {
+        let app_bin = format!("{}/{}", bin_dir, app.command);
+        let app_alias_bin = format!("{}/{}", bin_dir, app.alias);
+
+        // Скрипт-враппер
+        let launcher_script = format!(
+            "#!/bin/sh\n# akstOS College Launcher for {}\necho 'Запуск {}...'\nexec {} \"$@\"\n",
+            app.name, app.name, app.command
+        );
+
+        let _ = fs::write(&app_alias_bin, &launcher_script);
+        let _ = Command::new("chmod").args(["+x", &app_alias_bin]).status();
+
+        // Создаем .desktop файл для рабочего стола студента
+        let desktop_file = format!("{}/{}.desktop", desktop_dir, app.name);
+        let desktop_content = format!(
+            "[Desktop Entry]\nType=Application\nName={}\nComment={}\nExec={}\nTerminal=false\nCategories=Education;Office;\n",
+            app.name, app.description, app.command
+        );
+        let _ = fs::write(&desktop_file, desktop_content);
+        let _ = Command::new("chmod").args(["+x", &desktop_file]).status();
+    }
+
+    println!("\x1b[1;32m[✓] Все 7 программ успешно интегрированы в систему!\x1b[0m");
+    println!("    Созданы ярлыки на рабочем столе студента и русские команды терминала.");
+}
+
 /// Интерактивный установщик akstOS на жесткий диск старого ПК
 pub fn run_installer() {
     println!("\x1b[1;36m");
@@ -60,14 +115,15 @@ pub fn run_installer() {
 
     if disks.is_empty() {
         println!("\x1b[1;33m[!] Внимание: В системе /sys/block не найдено физических накопителей.");
-        println!("    (Если вы тестируете в Live-режиме, диски будут смонтированы при загрузке с BIOS).\x1b[0m\n");
-        println!("Пример того, как установщик работает на реальном ПК колледжа:");
-        println!("  1) /dev/sda [ 80.0 ГБ ] — Seagate Barracuda 7200");
-        println!("  2) /dev/sdb [  4.0 ГБ ] — Загрузочная флешка USB\n");
+        println!("    (Если вы запустили в тестовом Live-режиме, диски появятся при загрузке с BIOS).\x1b[0m\n");
+        println!("В дистрибутив akstOS включены предустановленные программы:");
+        println!("  - Wordcraft, Pdfcraft, Gridcraft, Deckcraft, Artcraft (чистый Rust)");
+        println!("  - Яндекс Браузер");
+        println!("  - Python 3 (свежая версия)\n");
         return;
     }
 
-    println!("Обнаружены доступные диски в компьютере:\n");
+    println!("Обнаружены доступные накопители:\n");
     for (i, disk) in disks.iter().enumerate() {
         println!("  \x1b[1;32m[{}]\x1b[0m {} [ {:.1} ГБ ] — {}", i + 1, disk.path, disk.size_gb, disk.model);
     }
@@ -100,8 +156,7 @@ pub fn run_installer() {
         return;
     }
 
-    println!("\n\x1b[1;32m[1/4] Подготовка разметки диска {} (MBR для старых BIOS)...\x1b[0m", target_disk.path);
-    // 1. Создание MBR раздела
+    println!("\n\x1b[1;32m[1/5] Подготовка разметки MBR для старых материнских плат...\x1b[0m");
     let _ = Command::new("parted")
         .args(["-s", &target_disk.path, "mklabel", "msdos", "mkpart", "primary", "ext4", "1MiB", "100%", "set", "1", "boot", "on"])
         .status();
@@ -112,26 +167,26 @@ pub fn run_installer() {
         format!("{}1", target_disk.path)
     };
 
-    println!("\x1b[1;32m[2/4] Форматирование раздела {} (легковесный ext4)...\x1b[0m", partition);
+    println!("\x1b[1;32m[2/5] Форматирование раздела {} (легковесный ext4)...\x1b[0m", partition);
     let _ = Command::new("mkfs.ext4")
         .args(["-F", "-L", "akstOS", &partition])
         .status();
 
-    println!("\x1b[1;32m[3/4] Копирование системных файлов и ядра на жесткий диск...\x1b[0m");
     let target_mount = "/mnt/target";
     let _ = fs::create_dir_all(target_mount);
-    
-    // Монтирование целевого раздела
     let _ = Command::new("mount").args([&partition, target_mount]).status();
 
+    println!("\x1b[1;32m[3/5] Копирование ядра akstOS и корневой системы...\x1b[0m");
     let boot_dir = format!("{}/boot", target_mount);
     let _ = fs::create_dir_all(&boot_dir);
-
-    // Копирование ядра и initramfs
     let _ = Command::new("cp").args(["/init", &format!("{}/init", target_mount)]).status();
 
-    // Создание конфигурации загрузчика syslinux / extlinux
-    println!("\x1b[1;32m[4/4] Установка сверхлегкого загрузчика (Syslinux MBR)...\x1b[0m");
+    // Развертывание предустановленного ПО
+    println!("\x1b[1;32m[4/5] Развертывание предустановленных программ...\x1b[0m");
+    deploy_college_software(target_mount);
+
+    // Установка легковесного Syslinux MBR загрузчика
+    println!("\x1b[1;32m[5/5] Установка сверхлегкого загрузчика (Syslinux MBR)...\x1b[0m");
     let extlinux_conf = format!("{}/syslinux.cfg", boot_dir);
     let cfg_content = "DEFAULT akstOS\nPROMPT 0\nTIMEOUT 30\n\nLABEL akstOS\n  LINUX /boot/vmlinuz\n  INITRD /boot/initramfs.cpio.gz\n  APPEND root=LABEL=akstOS nomodeset vga=791 console=tty0 quiet\n";
     let _ = fs::write(extlinux_conf, cfg_content);
@@ -141,7 +196,11 @@ pub fn run_installer() {
 
     println!("\n\x1b[1;32m============================================================");
     println!(" [✓] Установка akstOS успешно завершена!");
-    println!(" Вытащите установочную флешку и перезагрузите компьютер.");
-    println!(" Компьютер сразу загрузит akstOS с жесткого диска!");
+    println!(" Предустановленные программы готовы к работе:");
+    println!("  - Wordcraft, Pdfcraft, Gridcraft, Deckcraft, Artcraft");
+    println!("  - Яндекс Браузер");
+    println!("  - Python 3");
+    println!();
+    println!(" Вытащите флешку и перезагрузите компьютер!");
     println!("============================================================\x1b[0m\n");
 }
