@@ -12,6 +12,7 @@ jobs:
   build-iso:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-musl
@@ -19,7 +20,7 @@ jobs:
             apt_pkg: musl-tools
           - target: i686-unknown-linux-gnu
             arch_name: 32bit-ancient
-            apt_pkg: gcc-multilib
+            apt_pkg: gcc-multilib libc6-dev-i386
 
     steps:
     - name: Получение исходников
@@ -55,10 +56,12 @@ jobs:
         mkdir -p isodir/{boot,isolinux}
         cp initramfs.cpio.gz isodir/boot/initramfs.cpio.gz
 
-        # Копируем стандартное ядро Linux
+        # Копируем стандартное ядро Linux и даем права на чтение
         KERNEL=$(ls -1 /boot/vmlinuz* | head -n 1)
         echo "Используем ядро Linux: $KERNEL"
-        cp "$KERNEL" isodir/boot/vmlinuz
+        sudo cp "$KERNEL" isodir/boot/vmlinuz
+        sudo chmod 644 isodir/boot/vmlinuz
+        sudo chown -R $USER:$USER isodir
 
         # Копируем компоненты загрузчика ISOLINUX
         cp /usr/lib/ISOLINUX/isolinux.bin isodir/isolinux/isolinux.bin
@@ -66,7 +69,7 @@ jobs:
         cp /usr/lib/syslinux/modules/bios/libutil.c32 isodir/isolinux/libutil.c32 || true
         cp /usr/lib/syslinux/modules/bios/menu.c32 isodir/isolinux/menu.c32 || true
 
-        # Создаем конфигурацию загрузчика
+        # Конфигурация загрузчика для ПК колледжа
         cat << 'EOF' > isodir/isolinux/isolinux.cfg
         DEFAULT akstOS
         PROMPT 0
@@ -103,8 +106,11 @@ jobs:
     needs: build-iso
     runs-on: ubuntu-latest
     steps:
-    - name: Скачивание собранных ISO
+    - name: Скачивание всех собранных ISO
       uses: actions/download-artifact@v4
+
+    - name: Список скачанных файлов
+      run: find . -name "*.iso"
 
     - name: Публикация релиза v1.0 с ISO образами
       uses: softprops/action-gh-release@v2
@@ -114,7 +120,7 @@ jobs:
         body: |
           ### Официальные загрузочные ISO образы akstOS
           
-          Готовые образы `.iso` (гибридные: подходят для записи через Rufus, Ventoy, BalenaEtcher или на CD/DVD):
+          Гибридные образы `.iso` (подходят для записи через Rufus, Ventoy, BalenaEtcher или на CD/DVD):
           
           - **akstOS-64bit.iso** — для всех 64-битных ПК
           - **akstOS-32bit-ancient.iso** — для старых 32-битных ПК (Pentium 3/4, Celeron)
@@ -125,7 +131,6 @@ jobs:
           - Предустановленный софт: Lapce (VS Code на Rust), WordCraft, GridCraft, PdfCraft, DeckCraft, ArtCraft, Яндекс Браузер, Python 3
           - Часовой пояс: UTC+9
         files: |
-          akstOS-64bit-iso/akstOS-64bit.iso
-          akstOS-32bit-ancient-iso/akstOS-32bit-ancient.iso
+          */*.iso
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
