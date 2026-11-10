@@ -17,9 +17,11 @@ jobs:
         include:
           - target: x86_64-unknown-linux-musl
             arch_name: 64bit
+            kernel_url: https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/netboot/vmlinuz-lts
             apt_pkg: musl-tools
           - target: i686-unknown-linux-gnu
             arch_name: 32bit-ancient
+            kernel_url: https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86/netboot/vmlinuz-lts
             apt_pkg: gcc-multilib libc6-dev-i386
 
     steps:
@@ -34,7 +36,7 @@ jobs:
     - name: Установка инструментов создания ISO
       run: |
         sudo apt-get update
-        sudo apt-get install -y ${{ matrix.apt_pkg }} cpio gzip xorriso isolinux syslinux-common syslinux-utils
+        sudo apt-get install -y ${{ matrix.apt_pkg }} cpio gzip xorriso isolinux syslinux-common syslinux-utils curl
 
     - name: Компиляция akstOS PID 1 (${{ matrix.arch_name }})
       run: |
@@ -51,22 +53,16 @@ jobs:
         find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
         cd ..
 
-    - name: Сборка гибридного загрузочного ISO (ISOLINUX / MBR)
+    - name: Сборка гибридного загрузочного ISO (с правильным ядром Linux)
       run: |
         mkdir -p isodir/{boot,isolinux}
         cp initramfs.cpio.gz isodir/boot/initramfs.cpio.gz
 
-        # Получение ядра Linux (быстрая установка только ядра при необходимости)
-        KERNEL=$(ls -1 /boot/vmlinuz* 2>/dev/null | head -n 1)
-        if [ -z "$KERNEL" ]; then
-          echo "Ядро не найдено, устанавливаем linux-image-virtual..."
-          sudo apt-get install -y --no-install-recommends linux-image-virtual
-          KERNEL=$(ls -1 /boot/vmlinuz* | head -n 1)
-        fi
-        echo "Используем ядро Linux: $KERNEL"
-        sudo cp "$KERNEL" isodir/boot/vmlinuz
-        sudo chmod 644 isodir/boot/vmlinuz
-        sudo chown -R $USER:$USER isodir
+        # Скачиваем настоящее ядро нужной архитектуры (32-бит или 64-бит)
+        echo "Скачивание ядра: ${{ matrix.kernel_url }}"
+        curl -s -L -o isodir/boot/vmlinuz ${{ matrix.kernel_url }}
+        chmod 644 isodir/boot/vmlinuz
+        ls -lh isodir/boot/vmlinuz
 
         # Копируем компоненты загрузчика ISOLINUX
         cp /usr/lib/ISOLINUX/isolinux.bin isodir/isolinux/isolinux.bin
@@ -74,7 +70,7 @@ jobs:
         cp /usr/lib/syslinux/modules/bios/libutil.c32 isodir/isolinux/libutil.c32 || true
         cp /usr/lib/syslinux/modules/bios/menu.c32 isodir/isolinux/menu.c32 || true
 
-        # Конфигурация загрузчика для ПК колледжа
+        # Конфигурация загрузчика
         cat << 'EOF' > isodir/isolinux/isolinux.cfg
         DEFAULT akstOS
         PROMPT 0
@@ -120,24 +116,16 @@ jobs:
         find . -name "*.iso" -exec cp {} release_assets/ \;
         ls -lh release_assets/
 
-    - name: Публикация релиза v1.0 с ISO образами
+    - name: Публикация релиза v1.0 с правильными ядрами
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v1.0
-        name: "akstOS v1.0 (Загрузочные ISO образы для колледжа)"
+        name: "akstOS v1.0 (Загрузочные ISO с 32-бит и 64-бит ядрами)"
         body: |
-          ### Официальные загрузочные ISO образы akstOS
+          ### Официальные гибридные ISO образы akstOS
           
-          Гибридные образы `.iso` (подходят для записи через Rufus, Ventoy, BalenaEtcher или на CD/DVD):
-          
-          - **akstOS-64bit.iso** — для всех 64-битных ПК
-          - **akstOS-32bit-ancient.iso** — для старых 32-битных ПК (Pentium 3/4, Celeron)
-          
-          **Особенности:**
-          - 100% Русский интерфейс и команды
-          - Дизайн Liquid Glass (нагрузка CPU/GPU/RAM/температура, уведомления, панель задач)
-          - Предустановленный софт: Lapce (VS Code на Rust), WordCraft, GridCraft, PdfCraft, DeckCraft, ArtCraft, Яндекс Браузер, Python 3
-          - Часовой пояс: UTC+9
+          - **akstOS-32bit-ancient.iso** (настоящее 32-битное ядро i686): заводится на абсолютно любых 32-битных процессорах (Pentium 2/3/4, Celeron) и 32-битных виртуалках!
+          - **akstOS-64bit.iso** (настоящее 64-битное ядро x86-64): для всех 64-битных ПК.
         files: |
           release_assets/*.iso
       env:
