@@ -1,0 +1,67 @@
+{
+  "edition": "akstOS College Suite",
+  "timezone": "UTC+9",
+  "applications": [
+    {
+      "name": "WordCraft",
+      "binary": "wordcraft",
+      "command": "ворд",
+      "category": "Office;WordProcessor",
+      "language": "Rust",
+      "url": "https://github.com/storytold/wordcraft",
+      "description": "Офисный процессор документов (поддержка docx, pdf, odt, rtf)"
+    },
+    {
+      "name": "PdfCraft",
+      "binary": "pdfcraft",
+      "command": "пдф",
+      "category": "Office;Viewer",
+      "language": "Rust",
+      "url": "https://github.com/storytold/pdfcraft",
+      "description": "Просмотр, чтение и аннотирование PDF файлов"
+    },
+    {
+      "name": "GridCraft",
+      "binary": "gridcraft",
+      "command": "таблицы",
+      "category": "Office;Spreadsheet",
+      "language": "Rust",
+      "url": "https://github.com/storytold/gridcraft",
+      "description": "Электронные таблицы и вычисления"
+    },
+    {
+      "name": "DeckCraft",
+      "binary": "deckcraft",
+      "command": "слайды",
+      "category": "Office;Presentation",
+      "language": "Rust",
+      "url": "https://github.com/storytold/deckcraft",
+      "description": "Создание и проведение презентаций"
+    },
+    {
+      "name": "ArtCraft",
+      "binary": "artcraft",
+      "command": "рисование",
+      "category": "Graphics;2DGraphics",
+      "language": "Rust",
+      "url": "https://github.com/storytold/artcraft",
+      "description": "Графический редактор и цифровой рисунок"
+    },
+    {
+      "name": "Yandex Browser",
+      "binary": "yandex-browser",
+      "command": "браузер",
+      "category": "Network;WebBrowser",
+      "url": "https://browser.yandex.ru",
+      "description": "Яндекс Браузер для интернета и портала колледжа"
+    },
+    {
+      "name": "Python 3",
+      "binary": "python3",
+      "command": "питон",
+      "category": "Development;IDE",
+      "url": "https://www.python.org",
+      "description": "Интерпретатор Python свежей версии + pip"
+    }
+  ]
+}
