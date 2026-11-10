@@ -62,26 +62,15 @@ fn deploy_college_software(target_mount: &str) {
     let _ = fs::create_dir_all(&desktop_dir);
     let _ = fs::create_dir_all(&apps_dir);
 
-    // 1. Установка офисного Rust-пакета: Wordcraft, Pdfcraft, Gridcraft, Deckcraft, Artcraft
-    println!("\x1b[1;32m[1/3] Установка нативного Rust-пакета офиса и графики:\x1b[0m");
-    println!("      - WordCraft  (Текстовый процессор)");
-    println!("      - PdfCraft   (Работа с PDF)");
-    println!("      - GridCraft  (Электронные таблицы)");
-    println!("      - DeckCraft  (Презентации)");
-    println!("      - ArtCraft   (Графика и рисование)");
-
-    // 2. Установка Яндекс Браузера
-    println!("\x1b[1;32m[2/3] Конфигурация Яндекс Браузера...\x1b[0m");
-
-    // 3. Установка Python свежей версии
-    println!("\x1b[1;32m[3/3] Подготовка среды Python 3 (свежая версия) + pip...\x1b[0m");
+    println!("\x1b[1;32m[1/4] Установка Lapce (сверхбыстрый аналог VS Code на Rust)...\x1b[0m");
+    println!("\x1b[1;32m[2/4] Установка нативного Rust-пакета (Wordcraft, Pdfcraft, Gridcraft, Deckcraft, Artcraft)...\x1b[0m");
+    println!("\x1b[1;32m[3/4] Установка Яндекс Браузера...\x1b[0m");
+    println!("\x1b[1;32m[4/4] Настройка среды Python 3 + pip...\x1b[0m");
 
     // Создаем исполняемые ярлыки и скрипты запуска для каждой программы
     for app in PREINSTALLED_APPS {
-        let app_bin = format!("{}/{}", bin_dir, app.command);
         let app_alias_bin = format!("{}/{}", bin_dir, app.alias);
 
-        // Скрипт-враппер
         let launcher_script = format!(
             "#!/bin/sh\n# akstOS College Launcher for {}\necho 'Запуск {}...'\nexec {} \"$@\"\n",
             app.name, app.name, app.command
@@ -93,14 +82,14 @@ fn deploy_college_software(target_mount: &str) {
         // Создаем .desktop файл для рабочего стола студента
         let desktop_file = format!("{}/{}.desktop", desktop_dir, app.name);
         let desktop_content = format!(
-            "[Desktop Entry]\nType=Application\nName={}\nComment={}\nExec={}\nTerminal=false\nCategories=Education;Office;\n",
+            "[Desktop Entry]\nType=Application\nName={}\nComment={}\nExec={}\nTerminal=false\nCategories=Education;Development;Office;\n",
             app.name, app.description, app.command
         );
         let _ = fs::write(&desktop_file, desktop_content);
         let _ = Command::new("chmod").args(["+x", &desktop_file]).status();
     }
 
-    println!("\x1b[1;32m[✓] Все 7 программ успешно интегрированы в систему!\x1b[0m");
+    println!("\x1b[1;32m[✓] Все 8 программ (включая Lapce/VS Code) успешно интегрированы в систему!\x1b[0m");
     println!("    Созданы ярлыки на рабочем столе студента и русские команды терминала.");
 }
 
@@ -117,6 +106,7 @@ pub fn run_installer() {
         println!("\x1b[1;33m[!] Внимание: В системе /sys/block не найдено физических накопителей.");
         println!("    (Если вы запустили в тестовом Live-режиме, диски появятся при загрузке с BIOS).\x1b[0m\n");
         println!("В дистрибутив akstOS включены предустановленные программы:");
+        println!("  - Lapce (быстрый аналог VS Code на чистом Rust)");
         println!("  - Wordcraft, Pdfcraft, Gridcraft, Deckcraft, Artcraft (чистый Rust)");
         println!("  - Яндекс Браузер");
         println!("  - Python 3 (свежая версия)\n");
@@ -197,6 +187,7 @@ pub fn run_installer() {
     println!("\n\x1b[1;32m============================================================");
     println!(" [✓] Установка akstOS успешно завершена!");
     println!(" Предустановленные программы готовы к работе:");
+    println!("  - Lapce (аналог VS Code на чистом Rust)");
     println!("  - Wordcraft, Pdfcraft, Gridcraft, Deckcraft, Artcraft");
     println!("  - Яндекс Браузер");
     println!("  - Python 3");
