@@ -3,6 +3,15 @@
   "timezone": "UTC+9",
   "applications": [
     {
+      "name": "Lapce (Код)",
+      "binary": "lapce",
+      "command": "код",
+      "category": "Development;IDE;TextEditor",
+      "language": "Rust",
+      "url": "https://github.com/lapce/lapce",
+      "description": "Легковесный редактор кода (быстрый аналог VS Code на чистом Rust)"
+    },
+    {
       "name": "WordCraft",
       "binary": "wordcraft",
       "command": "ворд",
