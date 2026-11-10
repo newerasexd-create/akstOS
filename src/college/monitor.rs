@@ -1,6 +1,39 @@
 use std::fs;
 
-/// Компактный монитор системы для древних мониторов (80x25 символов) и малого ОЗУ
+/// Получение точного времени и даты в часовом поясе UTC+9 (без тяжелых внешних библиотек)
+pub fn get_utc9_time() -> (u64, u64, u64, u64, u64, u64) {
+    let total_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() + (9 * 3600); // Смещение UTC+9 (+9 часов)
+
+    let sec = total_secs % 60;
+    let min = (total_secs / 60) % 60;
+    let hour = (total_secs / 3600) % 24;
+
+    // Алгоритм расчета григорианского календаря (Howard Hinnant)
+    let mut days = (total_secs / 86400) as i64;
+    days += 719468;
+    let era = (if days >= 0 { days } else { days - 146096 }) / 146097;
+    let doe = (days - era * 146097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = (yoe as i64) + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = if m <= 2 { y + 1 } else { y };
+
+    (year as u64, m as u64, d as u64, hour, min, sec)
+}
+
+/// Вывод времени строкой
+pub fn format_utc9_time() -> String {
+    let (y, m, d, h, min, s) = get_utc9_time();
+    format!("{:02}.{:02}.{:04} {:02}:{:02}:{:02} (UTC+9)", d, m, y, h, min, s)
+}
+
+/// Компактный монитор системы для древних мониторов и малого ОЗУ
 pub fn show_compact_dashboard() {
     let hostname = fs::read_to_string("/etc/hostname")
         .unwrap_or_else(|_| "akstos-college".to_string());
@@ -14,8 +47,9 @@ pub fn show_compact_dashboard() {
     println!(r#"     /\        akstOS Легковесная Редакция"#);
     println!(r#"    /  \       --------------------------------"#);
     println!(r#"   / /\ \      Хост: {}"#, hostname.trim());
-    println!(r#"  / ____ \     Процессор: {} (ядер: {})"#, cpu_model, cpu_cores);
-    println!(r#" /_/    \_\    ОЗУ: {} МБ из {} МБ (занято: {}%)"#, mem_used / 1024, mem_total / 1024, mem_percent);
+    println!(r#"  / ____ \     Время: {}"#, format_utc9_time());
+    println!(r#" /_/    \_\    Процессор: {} (ядер: {})"#, cpu_model, cpu_cores);
+    println!(r#"               ОЗУ: {} МБ из {} МБ (занято: {}%)"#, mem_used / 1024, mem_total / 1024, mem_percent);
     println!("\x1b[0m");
 
     // Индикатор памяти
