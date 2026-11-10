@@ -1,9 +1,7 @@
-name: Build akstOS Image
+name: Сборка дистрибутива akstOS (для старых ПК)
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
@@ -11,37 +9,47 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        include:
+          - target: i686-unknown-linux-musl
+            arch_name: 32bit-ancient-x86
+            apt_pkg: gcc-multilib musl-tools
+          - target: x86_64-unknown-linux-musl
+            arch_name: 64bit-modern-x86_64
+            apt_pkg: musl-tools
+
     steps:
-    - name: Checkout repository
+    - name: Получение исходников
       uses: actions/checkout@v4
 
-    - name: Install Rust toolchain & musl target
+    - name: Установка Rust и целевой архитектуры ${{ matrix.target }}
       uses: dtolnay/rust-toolchain@stable
       with:
-        targets: x86_64-unknown-linux-musl
+        targets: ${{ matrix.target }}
 
-    - name: Install build tools and Linux Kernel
+    - name: Установка системных инструментов сборщика
       run: |
         sudo apt-get update
-        sudo apt-get install -y musl-tools cpio qemu-system-x86 linux-image-generic
+        sudo apt-get install -y ${{ matrix.apt_pkg }} cpio gzip
 
-    - name: Build akstOS Init (musl static)
+    - name: Компиляция облегченного ядра akstOS PID 1 (${{ matrix.arch_name }})
       run: |
-        cargo build --release --target x86_64-unknown-linux-musl
+        cargo build --release --target ${{ matrix.target }}
 
-    - name: Package initramfs
+    - name: Упаковка файловой системы initramfs
       run: |
-        mkdir -p rootfs/{bin,sbin,etc,proc,sys,dev,tmp,run,home/student/labs,home/student/projects}
-        cp target/x86_64-unknown-linux-musl/release/akst_os rootfs/init
+        mkdir -p rootfs/{bin,sbin,etc,proc,sys,dev,tmp,run,home/student}
+        cp target/${{ matrix.target }}/release/akst_os rootfs/init
         chmod +x rootfs/init
         cp config/os-release rootfs/etc/os-release
 
         cd rootfs
-        find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
+        find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../akstOS-${{ matrix.arch_name }}.cpio.gz
         cd ..
 
-    - name: Upload akstOS Artifacts
+    - name: Сохранение готового загрузочного образа
       uses: actions/upload-artifact@v4
       with:
-        name: akstOS-bootable-initramfs
-        path: initramfs.cpio.gz
+        name: akstOS-${{ matrix.arch_name }}-boot-image
+        path: akstOS-${{ matrix.arch_name }}.cpio.gz
