@@ -4,76 +4,77 @@ use std::path::Path;
 pub struct LabTask {
     pub id: usize,
     pub title: &'static str,
-    pub description: &'static str,
-    pub instruction: &'static str,
+    pub goal: &'static str,
+    pub task: &'static str,
 }
 
 pub const LABS: &[LabTask] = &[
     LabTask {
         id: 1,
-        title: "Изучение виртуальной файловой системы /proc",
-        description: "Освоение псевдо-файлов ядра Linux (/proc/cpuinfo, /proc/meminfo)",
-        instruction: "1. Выполните 'cat /proc/cpuinfo' и найдите модель процессора.\n2. Выполните 'cat /proc/meminfo' и найдите объем памяти MemTotal.\n3. Создайте файл ответа: выполните 'echo lab1_done > /home/student/labs/lab1.txt'",
+        title: "Изучение характеристик старого компьютера",
+        goal: "Определить объем оперативной памяти и модель процессора",
+        task: "1. Выполните команду 'память' (или 'система').\n2. Посмотрите, сколько МБ ОЗУ свободно на этом ПК.\n3. Создайте отчет: выполните команду 'создать_отчет 1'",
     },
     LabTask {
         id: 2,
-        title: "Управление файлами и структурой каталогов",
-        description: "Создание каталога проекта и структуры файлов студента",
-        instruction: "1. Создайте папку: 'mkdir /home/student/projects/my_project'\n2. Создайте файл с кодом студента внутри проекта: 'echo \"fn main() {}\" > /home/student/projects/my_project/main.rs'",
+        title: "Работа со студенческими файлами",
+        goal: "Научиться создавать каталоги и файлы в akstOS",
+        task: "1. Создайте папку: 'папка /home/student/работа1'\n2. Создайте файл: 'записать /home/student/работа1/ответ.txt Привет колледж!'\n3. Проверьте содержимое: 'читать /home/student/работа1/ответ.txt'",
     },
     LabTask {
         id: 3,
-        title: "Анализ процессов и архитектуры ОС",
-        description: "Исследование процесса инициализации PID 1 и системных метрик",
-        instruction: "1. Вызовите команду 'sysinfo' для анализа использования памяти.\n2. Вызовите 'ps' и изучите, почему PID 1 принадлежит akst-init.",
+        title: "Тестирование быстродействия старого процессора",
+        goal: "Замер скорости вычислений математического алгоритма",
+        task: "1. Запустите встроенный тест: команда 'тест'.\n2. Зафиксируйте время выполнения контрольных операций процессором.",
     },
 ];
 
 pub fn list_labs() {
-    println!("\x1b[1;36m=== Список лабораторных работ akstOS College ===\x1b[0m");
+    println!("\x1b[1;36m=== Лабораторные работы колледжа (akstOS) ===\x1b[0m");
     for lab in LABS {
-        println!("\x1b[1;33m[Лаб #{}]\x1b[0m {}", lab.id, lab.title);
-        println!("  Описание: {}", lab.description);
+        println!("\x1b[1;33m[Работа №{}]\x1b[0m {}", lab.id, lab.title);
+        println!("  Цель: {}", lab.goal);
     }
-    println!("\nДля деталей введите: \x1b[32mlab info <номер>\x1b[0m");
-    println!("Для проверки решения: \x1b[32mlab check <номер>\x1b[0m");
+    println!("\nПодробное задание: \x1b[32mлаб инфо <номер>\x1b[0m");
+    println!("Проверка выполнения: \x1b[32mлаб проверить <номер>\x1b[0m");
 }
 
 pub fn show_lab_info(id: usize) {
     if let Some(lab) = LABS.iter().find(|l| l.id == id) {
-        println!("\x1b[1;34m=== Лабораторная работа #{} ===\x1b[0m", lab.id);
+        println!("\x1b[1;34m=== Лабораторная работа №{} ===\x1b[0m", lab.id);
         println!("\x1b[1mТема:\x1b[0m {}", lab.title);
-        println!("\x1b[1mЦель:\x1b[0m {}", lab.description);
-        println!("\x1b[1mЗадание:\x1b[0m\n{}", lab.instruction);
+        println!("\x1b[1mЦель:\x1b[0m {}", lab.goal);
+        println!("\x1b[1mПорядок выполнения:\x1b[0m\n{}", lab.task);
     } else {
-        println!("Лабораторная работа #{} не найдена. Доступны: 1..{}", id, LABS.len());
+        println!("Лабораторная работа №{} не найдена. Доступны номера: 1..{}", id, LABS.len());
     }
 }
 
 pub fn check_lab(id: usize) {
     match id {
         1 => {
-            let path = Path::new("/home/student/labs/lab1.txt");
+            let path = Path::new("/home/student/лабораторная1.txt");
             if path.exists() {
-                println!("\x1b[1;32m[✓ СДАНО]\x1b[0m Лабораторная #1 успешно зачтена! Файл отчета найден.");
+                println!("\x1b[1;32m[✓ ЗАЧТЕНО]\x1b[0m Лабораторная №1 успешно выполнена! Отчет принят.");
             } else {
-                println!("\x1b[1;31m[✗ НЕ СДАНО]\x1b[0m Файл /home/student/labs/lab1.txt не найден.");
-                println!("Подсказка: выполните 'echo lab1_done > /home/student/labs/lab1.txt'");
+                println!("\x1b[1;31m[✗ НЕ ЗАЧТЕНО]\x1b[0m Отчет не найден.");
+                println!("Подсказка: выполните команду 'создать_отчет 1'");
             }
         }
         2 => {
-            let path = Path::new("/home/student/projects/my_project/main.rs");
+            let path = Path::new("/home/student/работа1/ответ.txt");
             if path.exists() {
-                println!("\x1b[1;32m[✓ СДАНО]\x1b[0m Лабораторная #2 успешно зачтена! Структура проекта корректна.");
+                println!("\x1b[1;32m[✓ ЗАЧТЕНО]\x1b[0m Лабораторная №2 зачтена! Файл студента создан верно.");
             } else {
-                println!("\x1b[1;31m[✗ НЕ СДАНО]\x1b[0m Файл /home/student/projects/my_project/main.rs не найден.");
+                println!("\x1b[1;31m[✗ НЕ ЗАЧТЕНО]\x1b[0m Файл /home/student/работа1/ответ.txt не найден.");
+                println!("Подсказка: изучите задание командой 'лаб инфо 2'");
             }
         }
         3 => {
-            println!("\x1b[1;32m[✓ СДАНО]\x1b[0m Теоретический модуль #3 пройден. Ответьте на контрольные вопросы преподавателю.");
+            println!("\x1b[1;32m[✓ ЗАЧТЕНО]\x1b[0m Тест процессора завершен. Покажите время преподавателю.");
         }
         _ => {
-            println!("Лабораторная #{} не поддерживается автоматической проверкой.", id);
+            println!("Для работы №{} нет автопроверки.", id);
         }
     }
 }
