@@ -4,7 +4,7 @@ use crate::college::{apps, installer, lab, monitor};
 use crate::sys::power;
 
 pub fn execute_builtin(cmd: &str, args: &[&str]) -> bool {
-    // 1. Сначала проверяем запуск предустановленных программ (ворд, браузер, питон и т.д.)
+    // 1. Сначала проверяем запуск предустановленных программ (код, ворд, браузер, питон и т.д.)
     if apps::launch_app(cmd, args) {
         return true;
     }
@@ -14,6 +14,7 @@ pub fn execute_builtin(cmd: &str, args: &[&str]) -> bool {
             println!("\x1b[1;36m=== Список команд akstOS (на русском языке) ===\x1b[0m");
             println!("  \x1b[1;32mПредустановленные программы колледжа:\x1b[0m");
             println!("    программы           - показать все предустановленные программы");
+            println!("    код (lapce, vscode) - запуск редактора кода Lapce (аналог VS Code на Rust)");
             println!("    ворд (wordcraft)    - запуск текстового редактора");
             println!("    пдф (pdfcraft)      - запуск просмотрщика и редактора PDF");
             println!("    таблицы (gridcraft) - запуск электронных таблиц");
