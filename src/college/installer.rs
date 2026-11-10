@@ -126,7 +126,7 @@ pub fn run_installer() {
         return;
     }
 
-    let choice: usize = match input.trim().parse() {
+    let choice: usize = match input.trim().parse::<usize>() {
         Ok(num) if num >= 1 && num <= disks.len() => num - 1,
         _ => {
             println!("\x1b[31mОшибка: неверный номер диска. Установка отменена.\x1b[0m");
