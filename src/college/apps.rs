@@ -12,6 +12,14 @@ pub struct CollegeApp {
 
 pub const PREINSTALLED_APPS: &[CollegeApp] = &[
     CollegeApp {
+        name: "Lapce (Код)",
+        command: "lapce",
+        alias: "код",
+        description: "Легковесная среда разработки (быстрый аналог VS Code на чистом Rust)",
+        binary_path: "/usr/bin/lapce",
+        url: "https://github.com/lapce/lapce",
+    },
+    CollegeApp {
         name: "WordCraft",
         command: "wordcraft",
         alias: "ворд",
@@ -91,7 +99,7 @@ pub fn list_apps() {
 
 /// Запуск предустановленного приложения
 pub fn launch_app(cmd: &str, args: &[&str]) -> bool {
-    if let Some(app) = PREINSTALLED_APPS.iter().find(|a| a.command == cmd || a.alias == cmd) {
+    if let Some(app) = PREINSTALLED_APPS.iter().find(|a| a.command == cmd || a.alias == cmd || (cmd == "vscode" && a.command == "lapce")) {
         if Path::new(app.binary_path).exists() {
             println!("\x1b[1;32m[Запуск]\x1b[0m Запуск {}...", app.name);
             let mut process = Command::new(app.binary_path);
@@ -108,8 +116,7 @@ pub fn launch_app(cmd: &str, args: &[&str]) -> bool {
             println!("\x1b[1;33m[akstOS]\x1b[0m Программа \x1b[1m{}\x1b[0m готова к установке.", app.name);
             println!("  Она входит в стандартный предустановленный пакет на жесткий диск.");
             println!("  Чтобы установить всю систему с этими программами, введите команду: \x1b[1;32mустановить\x1b[0m\n");
-            
-            // Если вызвали питон и доступен хостовый python, пробуем вызвать
+
             if app.command == "python3" {
                 if let Ok(mut child) = Command::new("python").args(args).spawn() {
                     let _ = child.wait();
