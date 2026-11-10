@@ -7,8 +7,8 @@ pub fn run_college_shell() {
     let mut line = String::new();
 
     loop {
-        // Цветной брендированный промпт для колледжа
-        print!("\x1b[1;32mстудент@akstOS\x1b[0m:\x1b[1;34m~\x1b[0m$ ");
+        // Русскоязычный понятный терминал студента
+        print!("\x1b[1;32m[akstOS]\x1b[0m:\x1b[1;34m[студент]\x1b[0m# ");
         io::stdout().flush().unwrap();
 
         line.clear();
@@ -27,7 +27,7 @@ pub fn run_college_shell() {
         let args = &parts[1..];
 
         if !builtins::execute_builtin(cmd, args) {
-            println!("\x1b[31makstOS: команда '{}' не найдена. Введите 'help' для справки.\x1b[0m", cmd);
+            println!("\x1b[31makstOS: неизвестная команда '{}'. Введите 'справка' для списка команд.\x1b[0m", cmd);
         }
     }
 }
