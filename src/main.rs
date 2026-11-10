@@ -2,6 +2,34 @@ mod college;
 mod shell;
 mod sys;
 
+fn setup_console() {
+    unsafe {
+        // Создаем каталог /dev и пробуем примонтировать devtmpfs
+        let _ = std::fs::create_dir_all("/dev");
+        let dev = std::ffi::CString::new("devtmpfs").unwrap();
+        let target = std::ffi::CString::new("/dev").unwrap();
+        let _ = libc::mount(
+            dev.as_ptr(),
+            target.as_ptr(),
+            dev.as_ptr(),
+            0,
+            std::ptr::null(),
+        );
+
+        // Открываем системную консоль /dev/console для ввода и вывода на монитор
+        let console_path = std::ffi::CString::new("/dev/console").unwrap();
+        let fd = libc::open(console_path.as_ptr(), libc::O_RDWR);
+        if fd >= 0 {
+            libc::dup2(fd, 0); // stdin  -> клавиатура
+            libc::dup2(fd, 1); // stdout -> экран монитора
+            libc::dup2(fd, 2); // stderr -> экран монитора
+            if fd > 2 {
+                libc::close(fd);
+            }
+        }
+    }
+}
+
 fn print_welcome_banner() {
     println!("\x1b[1;36m");
     println!(r#"     _    _  ______ _____ ___  ____  "#);
@@ -19,6 +47,9 @@ fn print_welcome_banner() {
 }
 
 fn main() {
+    // 1. Привязываем ввод и вывод к экрану /dev/console
+    setup_console();
+
     let pid = unsafe { libc::getpid() };
 
     if pid == 1 {
