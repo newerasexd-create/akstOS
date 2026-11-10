@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-/// Монтирование виртуальных файловых систем с ограничением памяти под старые ПК
+/// Монтирование виртуальных файловых систем и настройка часового пояса UTC+9
 pub fn mount_essential_filesystems() {
     println!("\x1b[1;36m[Инициализация] Подключение файловой системы...\x1b[0m");
 
@@ -9,7 +9,6 @@ pub fn mount_essential_filesystems() {
         ("proc", "/proc", "proc", ""),
         ("sysfs", "/sys", "sysfs", ""),
         ("devtmpfs", "/dev", "devtmpfs", ""),
-        // Ограничиваем tmpfs 16 Мегабайтами, чтобы не забить оперативную память старого ПК
         ("tmpfs", "/tmp", "tmpfs", "size=16M"),
         ("tmpfs", "/run", "tmpfs", "size=8M"),
     ];
@@ -48,7 +47,7 @@ pub fn mount_essential_filesystems() {
         }
     }
 
-    // Создаем папки студента для занятий
+    // Каталоги студента
     let student_dirs = [
         "/home/student",
         "/home/student/лабораторные",
@@ -61,6 +60,10 @@ pub fn mount_essential_filesystems() {
         let _ = fs::create_dir_all(dir);
     }
 
-    // Имя компьютера в сети колледжа
+    // Имя компьютера и часовой пояс UTC+9
     let _ = fs::write("/etc/hostname", "akstos-college\n");
+    let _ = fs::write("/etc/timezone", "Asia/Yakutsk (UTC+9)\n");
+
+    // Установка переменной окружения TZ в формате POSIX для UTC+9
+    std::env::set_var("TZ", "<+09>-9");
 }
