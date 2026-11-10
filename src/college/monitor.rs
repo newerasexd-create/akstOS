@@ -1,41 +1,54 @@
 use std::fs;
 
-pub fn show_system_dashboard() {
+/// Компактный монитор системы для древних мониторов (80x25 символов) и малого ОЗУ
+pub fn show_compact_dashboard() {
     let hostname = fs::read_to_string("/etc/hostname")
         .unwrap_or_else(|_| "akstos-college".to_string());
-    
-    let kernel_ver = fs::read_to_string("/proc/version")
-        .unwrap_or_else(|_| "Linux Kernel (Generic)".to_string());
-    let short_kernel = kernel_ver.split_whitespace().take(3).collect::<Vec<_>>().join(" ");
 
-    let uptime_str = fs::read_to_string("/proc/uptime")
-        .unwrap_or_else(|_| "0.0 0.0".to_string());
-    let uptime_secs: f64 = uptime_str.split_whitespace().next().and_then(|s| s.parse().ok()).unwrap_or(0.0);
-    let uptime_mins = (uptime_secs / 60.0) as u64;
-
-    // Чтение памяти
+    let (cpu_model, cpu_cores) = read_cpu_info();
     let (mem_total, mem_free) = read_memory_info();
     let mem_used = mem_total.saturating_sub(mem_free);
     let mem_percent = if mem_total > 0 { (mem_used * 100) / mem_total } else { 0 };
 
     println!("\x1b[1;36m");
-    println!(r#"        /\          akstOS Academic Edition"#);
-    println!(r#"       /  \         -----------------------"#);
-    println!(r#"      / /\ \        ОС: akstOS 1.0 (Rust Userland)"#);
-    println!(r#"     / ____ \       Ядро: {}"#, short_kernel);
-    println!(r#"    /_/    \_\      Хост: {}"#, hostname.trim());
-    println!(r#"   [akst College]   Аптайм: {} мин."#, uptime_mins);
-    println!(r#"                    ОЗУ: {} MB / {} MB [{}%]"#, mem_used / 1024, mem_total / 1024, mem_percent);
+    println!(r#"     /\        akstOS Легковесная Редакция"#);
+    println!(r#"    /  \       --------------------------------"#);
+    println!(r#"   / /\ \      Хост: {}"#, hostname.trim());
+    println!(r#"  / ____ \     Процессор: {} (ядер: {})"#, cpu_model, cpu_cores);
+    println!(r#" /_/    \_\    ОЗУ: {} МБ из {} МБ (занято: {}%)"#, mem_used / 1024, mem_total / 1024, mem_percent);
     println!("\x1b[0m");
 
-    // Графический индикатор памяти для студентов
-    let bar_width = 30;
-    let filled = ((mem_percent as usize) * bar_width) / 100;
-    let empty = bar_width.saturating_sub(filled);
-    print!("ОЗУ: [");
+    // Индикатор памяти
+    let width = 24;
+    let filled = ((mem_percent as usize) * width) / 100;
+    let empty = width.saturating_sub(filled);
+    print!(" Память: [");
     print!("\x1b[1;32m{}\x1b[0m", "#".repeat(filled));
     print!("{}", "-".repeat(empty));
-    println!("] {}%", mem_percent);
+    println!("] {} МБ свободно", mem_free / 1024);
+
+    if mem_total / 1024 < 512 {
+        println!("\x1b[1;33m [!] Режим экономии ОЗУ: система оптимизирована под малый объем памяти.\x1b[0m");
+    }
+}
+
+fn read_cpu_info() -> (String, usize) {
+    let mut model = "x86 Процессор".to_string();
+    let mut cores = 0;
+
+    if let Ok(content) = fs::read_to_string("/proc/cpuinfo") {
+        for line in content.lines() {
+            if line.starts_with("model name") {
+                if let Some(val) = line.split(':').nth(1) {
+                    model = val.trim().to_string();
+                }
+            } else if line.starts_with("processor") {
+                cores += 1;
+            }
+        }
+    }
+    if cores == 0 { cores = 1; }
+    (model, cores)
 }
 
 fn read_memory_info() -> (u64, u64) {
