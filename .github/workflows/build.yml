@@ -1,0 +1,47 @@
+name: Build akstOS Image
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain & musl target
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: x86_64-unknown-linux-musl
+
+    - name: Install build tools and Linux Kernel
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y musl-tools cpio qemu-system-x86 linux-image-generic
+
+    - name: Build akstOS Init (musl static)
+      run: |
+        cargo build --release --target x86_64-unknown-linux-musl
+
+    - name: Package initramfs
+      run: |
+        mkdir -p rootfs/{bin,sbin,etc,proc,sys,dev,tmp,run,home/student/labs,home/student/projects}
+        cp target/x86_64-unknown-linux-musl/release/akst_os rootfs/init
+        chmod +x rootfs/init
+        cp config/os-release rootfs/etc/os-release
+
+        cd rootfs
+        find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
+        cd ..
+
+    - name: Upload akstOS Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: akstOS-bootable-initramfs
+        path: initramfs.cpio.gz
