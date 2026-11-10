@@ -1,4 +1,4 @@
-name: Сборка и Релиз akstOS
+name: Сборка загрузочного ISO akstOS
 
 on:
   push:
@@ -9,18 +9,17 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-iso:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         include:
-          - target: i686-unknown-linux-musl
-            arch_name: 32bit-ancient-x86
-            apt_pkg: gcc-multilib musl-tools
           - target: x86_64-unknown-linux-musl
-            arch_name: 64bit-modern-x86_64
+            arch_name: 64bit
             apt_pkg: musl-tools
+          - target: i686-unknown-linux-gnu
+            arch_name: 32bit-ancient
+            apt_pkg: gcc-multilib
 
     steps:
     - name: Получение исходников
@@ -31,16 +30,16 @@ jobs:
       with:
         targets: ${{ matrix.target }}
 
-    - name: Установка инструментов
+    - name: Установка инструментов создания ISO и ядра Linux
       run: |
         sudo apt-get update
-        sudo apt-get install -y ${{ matrix.apt_pkg }} cpio gzip
+        sudo apt-get install -y ${{ matrix.apt_pkg }} cpio gzip xorriso isolinux syslinux-common syslinux-utils linux-image-generic
 
     - name: Компиляция akstOS PID 1 (${{ matrix.arch_name }})
       run: |
         cargo build --release --target ${{ matrix.target }}
 
-    - name: Упаковка файловой системы initramfs
+    - name: Создание структуры initramfs
       run: |
         mkdir -p rootfs/{bin,sbin,etc,proc,sys,dev,tmp,run,home/student}
         cp target/${{ matrix.target }}/release/akst_os rootfs/init
@@ -48,35 +47,85 @@ jobs:
         cp config/os-release rootfs/etc/os-release
 
         cd rootfs
-        find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../akstOS-${{ matrix.arch_name }}.cpio.gz
+        find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz
         cd ..
 
-    - name: Сохранение артефакта
+    - name: Сборка гибридного загрузочного ISO (ISOLINUX / MBR)
+      run: |
+        mkdir -p isodir/{boot,isolinux}
+        cp initramfs.cpio.gz isodir/boot/initramfs.cpio.gz
+
+        # Копируем стандартное ядро Linux
+        KERNEL=$(ls -1 /boot/vmlinuz* | head -n 1)
+        echo "Используем ядро Linux: $KERNEL"
+        cp "$KERNEL" isodir/boot/vmlinuz
+
+        # Копируем компоненты загрузчика ISOLINUX
+        cp /usr/lib/ISOLINUX/isolinux.bin isodir/isolinux/isolinux.bin
+        cp /usr/lib/syslinux/modules/bios/ldlinux.c32 isodir/isolinux/ldlinux.c32 || true
+        cp /usr/lib/syslinux/modules/bios/libutil.c32 isodir/isolinux/libutil.c32 || true
+        cp /usr/lib/syslinux/modules/bios/menu.c32 isodir/isolinux/menu.c32 || true
+
+        # Создаем конфигурацию загрузчика
+        cat << 'EOF' > isodir/isolinux/isolinux.cfg
+        DEFAULT akstOS
+        PROMPT 0
+        TIMEOUT 30
+
+        LABEL akstOS
+          MENU LABEL akstOS College Edition (Liquid Glass)
+          LINUX /boot/vmlinuz
+          INITRD /boot/initramfs.cpio.gz
+          APPEND nomodeset vga=791 console=tty0 quiet
+        EOF
+
+        # Создаем гибридный образ ISO
+        xorriso -as mkisofs \
+          -r -V "akstOS" \
+          -J -joliet-long \
+          -b isolinux/isolinux.bin \
+          -c isolinux/boot.cat \
+          -no-emul-boot \
+          -boot-load-size 4 \
+          -boot-info-table \
+          -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
+          -o akstOS-${{ matrix.arch_name }}.iso isodir
+
+        ls -lh akstOS-${{ matrix.arch_name }}.iso
+
+    - name: Сохранение ISO как артефакта
       uses: actions/upload-artifact@v4
       with:
-        name: akstOS-${{ matrix.arch_name }}-boot-image
-        path: akstOS-${{ matrix.arch_name }}.cpio.gz
+        name: akstOS-${{ matrix.arch_name }}-iso
+        path: akstOS-${{ matrix.arch_name }}.iso
 
-  release:
-    needs: build
+  publish-release:
+    needs: build-iso
     runs-on: ubuntu-latest
     steps:
-    - name: Скачивание всех артефактов
+    - name: Скачивание собранных ISO
       uses: actions/download-artifact@v4
 
-    - name: Публикация релиза с прямыми ссылками
+    - name: Публикация релиза v1.0 с ISO образами
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: latest
-        name: "akstOS Релиз (Готовые образы для колледжа)"
+        tag_name: v1.0
+        name: "akstOS v1.0 (Загрузочные ISO образы для колледжа)"
         body: |
-          ### Готовые образы akstOS для старых компьютеров
-          - **akstOS-32bit-ancient-x86.cpio.gz**: Для 32-битных древних процессоров (Pentium 3/4, Celeron).
-          - **akstOS-64bit-modern-x86_64.cpio.gz**: Для 64-битных ПК.
+          ### Официальные загрузочные ISO образы akstOS
           
-          В системе встроен мастер установки на диск (команда `установить`).
+          Готовые образы `.iso` (гибридные: подходят для записи через Rufus, Ventoy, BalenaEtcher или на CD/DVD):
+          
+          - **akstOS-64bit.iso** — для всех 64-битных ПК
+          - **akstOS-32bit-ancient.iso** — для старых 32-битных ПК (Pentium 3/4, Celeron)
+          
+          **Особенности:**
+          - 100% Русский интерфейс и команды
+          - Дизайн Liquid Glass (нагрузка CPU/GPU/RAM/температура, уведомления, панель задач)
+          - Предустановленный софт: Lapce (VS Code на Rust), WordCraft, GridCraft, PdfCraft, DeckCraft, ArtCraft, Яндекс Браузер, Python 3
+          - Часовой пояс: UTC+9
         files: |
-          akstOS-32bit-ancient-x86-boot-image/akstOS-32bit-ancient-x86.cpio.gz
-          akstOS-64bit-modern-x86_64-boot-image/akstOS-64bit-modern-x86_64.cpio.gz
+          akstOS-64bit-iso/akstOS-64bit.iso
+          akstOS-32bit-ancient-iso/akstOS-32bit-ancient.iso
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
